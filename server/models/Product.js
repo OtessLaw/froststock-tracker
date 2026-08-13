@@ -59,6 +59,10 @@ const productSchema = new mongoose.Schema(
       type: Boolean,
       default: true,
     },
+    lastLowStockAlertSentAt: {
+      type: Date,
+      default: null,
+    },
   },
   { timestamps: true }
 );

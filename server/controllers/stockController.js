@@ -91,6 +91,12 @@ const adjustStock = async (req, res, next) => {
     product.currentStock = newStock;
     await product.save();
 
+    // Trigger SMS if adjusted stock is at or below minimum threshold
+    if (newStock <= (product.minimumStock ?? 5)) {
+      const { triggerLowStockSMS } = require('../services/smsService');
+      triggerLowStockSMS(product, newStock).catch((e) => console.error('SMS alert error:', e.message));
+    }
+
     await StockTransaction.create({
       product: product._id,
       productName: product.name,

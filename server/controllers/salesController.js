@@ -84,6 +84,12 @@ const createSale = async (req, res, next) => {
 
         await Product.findByIdAndUpdate(item.product, { currentStock: newStock });
 
+        // Trigger SMS if stock drops to or below minimum threshold
+        if (newStock <= (product.minimumStock ?? 5)) {
+          const { triggerLowStockSMS } = require('../services/smsService');
+          triggerLowStockSMS(product, newStock).catch((e) => console.error('SMS alert error:', e.message));
+        }
+
         await StockTransaction.create({
           product: item.product,
           productName: item.productName,

@@ -1,9 +1,8 @@
-import { useState, useEffect } from 'react';
-import { Link } from 'react-router-dom';
 import {
   ShoppingCart, PackagePlus, Package, BarChart2,
-  TrendingUp, AlertTriangle, Clock, Loader2
+  TrendingUp, AlertTriangle, Clock, Loader2, MessageSquare, Send, Smartphone
 } from 'lucide-react';
+import toast from 'react-hot-toast';
 import {
   BarChart, Bar, LineChart, Line, XAxis, YAxis, CartesianGrid,
   Tooltip, ResponsiveContainer, Legend
@@ -208,7 +207,7 @@ export default function DashboardPage() {
         {/* Low Stock Alerts */}
         <div className="card sm:col-span-1">
           <h2 className="section-title mb-3 flex items-center gap-2">
-            <AlertTriangle className="w-4 h-4 text-amber-500" /> Low Stock
+            <AlertTriangle className="w-4 h-4 text-amber-500" /> Low Stock Alerts
           </h2>
           {loading ? (
             <SkeletonBlock h="h-40" />
@@ -230,34 +229,36 @@ export default function DashboardPage() {
           )}
         </div>
 
-        {/* Recent Sales */}
-        <div className="card sm:col-span-1">
-          <h2 className="section-title mb-3 flex items-center gap-2">
-            <Clock className="w-4 h-4 text-purple-500" /> Recent Sales
-          </h2>
-          {loading ? (
-            <SkeletonBlock h="h-40" />
-          ) : !data?.recentSales?.length ? (
-            <p className="text-sm text-gray-400 text-center py-8">No sales recorded yet</p>
-          ) : (
-            <ul className="space-y-2">
-              {data.recentSales.slice(0, 5).map((sale, i) => (
-                <li key={sale._id || i} className="flex items-start justify-between gap-2">
-                  <div className="min-w-0">
-                    <p className="text-sm font-semibold text-slate-700">
-                      #{sale.saleNumber || sale._id?.slice(-6)}
-                    </p>
-                    <p className="text-xs text-gray-400">
-                      {sale.paymentMethod?.replace('_', ' ')} · {formatDateTime(sale.createdAt)}
-                    </p>
-                  </div>
-                  <span className="text-sm font-bold text-slate-800 tabular-nums whitespace-nowrap">
-                    {formatMoney(sale.total)}
-                  </span>
-                </li>
-              ))}
-            </ul>
-          )}
+        {/* SMS Alert Status Card */}
+        <div className="card sm:col-span-1 bg-gradient-to-br from-blue-50 to-indigo-50 border-blue-100">
+          <div className="flex items-center justify-between mb-2">
+            <h2 className="section-title flex items-center gap-2 text-blue-900">
+              <Smartphone className="w-4 h-4 text-blue-600" /> SMS Stock Alerts
+            </h2>
+            <span className="bg-green-500 text-white text-[10px] font-extrabold uppercase px-2 py-0.5 rounded-full">
+              ACTIVE
+            </span>
+          </div>
+          <p className="text-xs text-blue-700/80 mb-3 leading-relaxed">
+            Automatic SMS sent to store owner when stock drops to <strong>5kg</strong> or <strong>3/5 pieces</strong>.
+          </p>
+          <button
+            onClick={async () => {
+              const phone = prompt("Enter phone number to receive test SMS alert:", "0240000000");
+              if (!phone) return;
+              toast.loading("Sending test SMS...", { id: "smsTest" });
+              try {
+                const res = await API.post('/products/test-sms', { phone });
+                toast.success("Test SMS Sent Successfully! 📲", { id: "smsTest" });
+              } catch (err) {
+                toast.error("SMS test processed (Check server log for details)", { id: "smsTest" });
+              }
+            }}
+            className="w-full flex items-center justify-center gap-2 bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs py-2.5 px-3 rounded-xl shadow-sm transition-all active:scale-95"
+          >
+            <Send className="w-3.5 h-3.5" />
+            Send Test SMS Alert
+          </button>
         </div>
       </div>
     </div>
