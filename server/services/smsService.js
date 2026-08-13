@@ -43,6 +43,30 @@ const sendSMS = async ({ to, message }) => {
     }
   }
 
+  // 2. FASTREACH / CUSTOM GHANA GATEWAY
+  if (process.env.FASTREACH_API_KEY) {
+    try {
+      const res = await axios.post(
+        process.env.FASTREACH_URL || 'https://api.fastreach.com/v1/sms/send',
+        {
+          recipient,
+          sender: process.env.SMS_SENDER_ID || 'FrostStock',
+          message,
+        },
+        {
+          headers: {
+            Authorization: `Bearer ${process.env.FASTREACH_API_KEY}`,
+            'Content-Type': 'application/json',
+          },
+        }
+      );
+      console.log(`📲 [SMS SENT via FastReach to ${recipient}]:`, res.data);
+      return { success: true, provider: 'fastreach', data: res.data };
+    } catch (err) {
+      console.error('❌ FastReach SMS failed:', err.message);
+    }
+  }
+
   // 2. HUBTEL (Ghana Local Gateway)
   if (process.env.HUBTEL_CLIENT_ID && process.env.HUBTEL_CLIENT_SECRET) {
     try {
