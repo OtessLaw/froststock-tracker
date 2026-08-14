@@ -9,16 +9,16 @@ import { useAuth } from '../context/AuthContext';
 import toast from 'react-hot-toast';
 
 const navItems = [
-  { to: '/', icon: LayoutDashboard, label: 'Dashboard', exact: true },
-  { to: '/sales/new', icon: ShoppingCart, label: 'New Sale' },
-  { to: '/sales', icon: Archive, label: 'Sales History' },
-  { to: '/stock', icon: Package, label: 'Stock' },
-  { to: '/inventory', icon: Package, label: 'Inventory' },
-  { to: '/products', icon: Archive, label: 'Products', adminOnly: false },
-  { to: '/reports', icon: BarChart2, label: 'Reports' },
-  { to: '/expenses', icon: DollarSign, label: 'Expenses' },
-  { to: '/suppliers', icon: Truck, label: 'Suppliers', adminOnly: true },
-  { to: '/users', icon: Users, label: 'Users', adminOnly: true },
+  { to: '/', icon: LayoutDashboard, label: 'Dashboard', subtext: 'Overview & alerts', exact: true },
+  { to: '/sales/new', icon: ShoppingCart, label: '🛒 Make Sales', subtext: 'Sell to customers' },
+  { to: '/stock', icon: Package, label: '📦 Receive Stock', subtext: 'When new goods arrive' },
+  { to: '/products', icon: Archive, label: '🏷️ Price List & Items', subtext: 'Set selling & buying prices' },
+  { to: '/inventory', icon: Package, label: '📊 Stock Value', subtext: 'Money worth in freezers' },
+  { to: '/sales', icon: Archive, label: '🧾 Sales History', subtext: 'Past receipts & records' },
+  { to: '/reports', icon: BarChart2, label: '📈 Profit Reports', subtext: 'Daily/Weekly profit' },
+  { to: '/expenses', icon: DollarSign, label: '💸 Expenses', subtext: 'Light bills, transport, etc.' },
+  { to: '/suppliers', icon: Truck, label: '🏭 Suppliers', adminOnly: true },
+  { to: '/users', icon: Users, label: '👥 Staff Accounts', adminOnly: true },
 ];
 
 // Bottom nav items (mobile)
@@ -84,15 +84,18 @@ const Sidebar = ({ open, onClose, isAdmin }) => {
                 end={item.exact}
                 onClick={onClose}
                 className={({ isActive }) =>
-                  `flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium mb-0.5 transition-all duration-200 ${
+                  `flex items-center gap-3 px-3 py-2 rounded-xl text-sm font-medium mb-1 transition-all duration-200 ${
                     isActive
-                      ? 'bg-blue-50 text-blue-600'
+                      ? 'bg-blue-50 text-blue-600 shadow-sm'
                       : 'text-gray-600 hover:bg-pink-50 hover:text-pink-600'
                   }`
                 }
               >
                 <item.icon className="w-5 h-5 flex-shrink-0" />
-                {item.label}
+                <div className="min-w-0 flex-1">
+                  <p className="leading-tight font-semibold text-xs">{item.label}</p>
+                  {item.subtext && <p className="text-[10px] text-gray-400 font-normal truncate mt-0.5">{item.subtext}</p>}
+                </div>
               </NavLink>
             ))}
         </nav>

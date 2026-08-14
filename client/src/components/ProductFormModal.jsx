@@ -50,16 +50,24 @@ export default function ProductFormModal({ product, onClose, onSaved }) {
   useEffect(() => {
     let cancelled = false;
     Promise.all([
-      API.get('/categories').then((r) => r.data || []),
-      API.get('/suppliers').then((r) => r.data?.suppliers || r.data || []),
+      API.get('/categories'),
+      API.get('/suppliers'),
     ])
-      .then(([cats, sups]) => {
+      .then(([catRes, supRes]) => {
         if (!cancelled) {
-          setCategories(cats);
-          setSuppliers(sups);
+          const catsData = catRes.data?.data || catRes.data?.categories || catRes.data || [];
+          const supsData = supRes.data?.data || supRes.data?.suppliers || supRes.data || [];
+          setCategories(Array.isArray(catsData) ? catsData : []);
+          setSuppliers(Array.isArray(supsData) ? supsData : []);
         }
       })
-      .catch(() => {})
+      .catch((err) => {
+        console.error('Failed to load form meta:', err.message);
+        if (!cancelled) {
+          setCategories([]);
+          setSuppliers([]);
+        }
+      })
       .finally(() => { if (!cancelled) setMetaLoading(false); });
     return () => { cancelled = true; };
   }, []);
@@ -193,7 +201,7 @@ export default function ProductFormModal({ product, onClose, onSaved }) {
                   disabled={saving || metaLoading}
                 >
                   <option value="">Select…</option>
-                  {categories.map((cat) => (
+                  {(Array.isArray(categories) ? categories : []).map((cat) => (
                     <option key={cat._id} value={cat._id}>{cat.name}</option>
                   ))}
                 </select>
@@ -317,7 +325,7 @@ export default function ProductFormModal({ product, onClose, onSaved }) {
                 disabled={saving || metaLoading}
               >
                 <option value="">None / Unknown</option>
-                {suppliers.map((sup) => (
+                {(Array.isArray(suppliers) ? suppliers : []).map((sup) => (
                   <option key={sup._id} value={sup._id}>{sup.name}</option>
                 ))}
               </select>
