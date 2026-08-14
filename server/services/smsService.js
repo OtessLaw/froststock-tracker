@@ -14,129 +14,113 @@ const formatGhanaPhone = (phone) => {
 };
 
 /**
- * Send SMS using available provider (Arkesel, Hubtel, Twilio, or Console Logger)
+ * Send SMS to one or multiple phone numbers (comma or space separated)
  */
 const sendSMS = async ({ to, message }) => {
-  const recipient = formatGhanaPhone(to || process.env.OWNER_PHONE_NUMBER);
+  const rawInput = to || process.env.OWNER_PHONE_NUMBER || '';
   
-  if (!recipient) {
-    console.log(`📱 [SMS LOG - NO RECIPIENT] Message: "${message}"`);
-    return { success: false, reason: 'No phone number provided' };
+  // Parse single or multiple phone numbers (comma, slash, or semicolon separated)
+  let phoneList = [];
+  if (Array.isArray(rawInput)) {
+    phoneList = rawInput;
+  } else if (typeof rawInput === 'string') {
+    phoneList = rawInput.split(/[,;/]+/).map((p) => p.trim()).filter(Boolean);
   }
 
-  // 1. ARKESEL (Ghana SMS Gateway - https://arkesel.com)
-  if (process.env.ARKESEL_API_KEY) {
-    try {
-      const res = await axios.get('https://sms.arkesel.com/sms/api', {
-        params: {
-          action: 'send-sms',
-          api_key: process.env.ARKESEL_API_KEY,
-          to: recipient,
-          from: process.env.SMS_SENDER_ID || 'FrostStock',
-          sms: message,
-        },
-      });
-      console.log(`📲 [SMS SENT via Arkesel to ${recipient}]:`, res.data);
-      return { success: true, provider: 'arkesel', data: res.data };
-    } catch (err) {
-      console.error('❌ Arkesel SMS failed:', err.message);
-    }
+  const recipients = phoneList.map(formatGhanaPhone).filter(Boolean);
+
+  if (recipients.length === 0) {
+    console.log(`📱 [SMS LOG - NO RECIPIENTS] Message: "${message}"`);
+    return { success: false, reason: 'No valid phone numbers provided' };
   }
 
-  // 2. FASTREACH GHANA GATEWAY
-  if (process.env.FASTREACH_API_KEY) {
-    try {
-      const apiKey = process.env.FASTREACH_API_KEY.trim();
-      const senderId = process.env.SMS_SENDER_ID || 'FrostStock';
-      const endpoint = process.env.FASTREACH_URL || 'https://api.fastreachgh.com/api/v1/send';
-
-      const res = await axios.post(
-        endpoint,
-        {
-          recipient: recipient,
-          to: recipient,
-          sender: senderId,
-          from: senderId,
-          message: message,
-          sms: message,
-        },
-        {
-          headers: {
-            'Authorization': `Bearer ${apiKey}`,
-            'x-api-key': apiKey,
-            'Content-Type': 'application/json',
-          },
+  // Send to all recipients in parallel
+  const results = await Promise.all(
+    recipients.map(async (recipient) => {
+      // 1. ARKESEL (Ghana SMS Gateway - https://arkesel.com)
+      if (process.env.ARKESEL_API_KEY) {
+        try {
+          const res = await axios.get('https://sms.arkesel.com/sms/api', {
+            params: {
+              action: 'send-sms',
+              api_key: process.env.ARKESEL_API_KEY,
+              to: recipient,
+              from: process.env.SMS_SENDER_ID || 'FrostStock',
+              sms: message,
+            },
+          });
+          console.log(`📲 [SMS SENT via Arkesel to ${recipient}]:`, res.data);
+          return { recipient, success: true, provider: 'arkesel', data: res.data };
+        } catch (err) {
+          console.error(`❌ Arkesel SMS failed for ${recipient}:`, err.message);
         }
-      );
-      console.log(`📲 [SMS SENT via FastReach to ${recipient}]:`, res.data);
-      return { success: true, provider: 'fastreach', data: res.data };
-    } catch (err) {
-      console.error('❌ FastReach SMS failed:', err.response?.data || err.message);
-    }
-  }
+      }
 
-  // 2. HUBTEL (Ghana Local Gateway)
-  if (process.env.HUBTEL_CLIENT_ID && process.env.HUBTEL_CLIENT_SECRET) {
-    try {
-      const auth = Buffer.from(`${process.env.HUBTEL_CLIENT_ID}:${process.env.HUBTEL_CLIENT_SECRET}`).toString('base64');
-      const res = await axios.post(
-        'https://api.hubtel.com/v1/messages/send',
-        {
-          From: process.env.SMS_SENDER_ID || 'FrostStock',
-          To: recipient,
-          Content: message,
-        },
-        {
-          headers: { Authorization: `Basic ${auth}` },
+      // 2. FASTREACH GHANA GATEWAY
+      if (process.env.FASTREACH_API_KEY) {
+        try {
+          const apiKey = process.env.FASTREACH_API_KEY.trim();
+          const senderId = process.env.SMS_SENDER_ID || 'FrostStock';
+          const endpoint = process.env.FASTREACH_URL || 'https://api.fastreachgh.com/api/v1/send';
+
+          const res = await axios.post(
+            endpoint,
+            {
+              recipient: recipient,
+              to: recipient,
+              sender: senderId,
+              from: senderId,
+              message: message,
+              sms: message,
+            },
+            {
+              headers: {
+                'Authorization': `Bearer ${apiKey}`,
+                'x-api-key': apiKey,
+                'Content-Type': 'application/json',
+              },
+            }
+          );
+          console.log(`📲 [SMS SENT via FastReach to ${recipient}]:`, res.data);
+          return { recipient, success: true, provider: 'fastreach', data: res.data };
+        } catch (err) {
+          console.error(`❌ FastReach SMS failed for ${recipient}:`, err.response?.data || err.message);
         }
-      );
-      console.log(`📲 [SMS SENT via Hubtel to ${recipient}]:`, res.data);
-      return { success: true, provider: 'hubtel', data: res.data };
-    } catch (err) {
-      console.error('❌ Hubtel SMS failed:', err.message);
-    }
-  }
+      }
 
-  // 3. TWILIO (Global Gateway)
-  if (process.env.TWILIO_ACCOUNT_SID && process.env.TWILIO_AUTH_TOKEN) {
-    try {
-      const auth = Buffer.from(`${process.env.TWILIO_ACCOUNT_SID}:${process.env.TWILIO_AUTH_TOKEN}`).toString('base64');
-      const params = new URLSearchParams();
-      params.append('To', `+${recipient}`);
-      params.append('From', process.env.TWILIO_PHONE_NUMBER);
-      params.append('Body', message);
-
-      const res = await axios.post(
-        `https://api.twilio.com/2010-04-01/Accounts/${process.env.TWILIO_ACCOUNT_SID}/Messages.json`,
-        params,
-        {
-          headers: {
-            Authorization: `Basic ${auth}`,
-            'Content-Type': 'application/x-www-form-urlencoded',
-          },
+      // 3. HUBTEL (Ghana Local Gateway)
+      if (process.env.HUBTEL_CLIENT_ID && process.env.HUBTEL_CLIENT_SECRET) {
+        try {
+          const auth = Buffer.from(`${process.env.HUBTEL_CLIENT_ID}:${process.env.HUBTEL_CLIENT_SECRET}`).toString('base64');
+          const res = await axios.post(
+            'https://api.hubtel.com/v1/messages/send',
+            {
+              From: process.env.SMS_SENDER_ID || 'FrostStock',
+              To: recipient,
+              Content: message,
+            },
+            {
+              headers: { Authorization: `Basic ${auth}` },
+            }
+          );
+          console.log(`📲 [SMS SENT via Hubtel to ${recipient}]:`, res.data);
+          return { recipient, success: true, provider: 'hubtel', data: res.data };
+        } catch (err) {
+          console.error(`❌ Hubtel SMS failed for ${recipient}:`, err.message);
         }
-      );
-      console.log(`📲 [SMS SENT via Twilio to +${recipient}]:`, res.data.sid);
-      return { success: true, provider: 'twilio', data: res.data };
-    } catch (err) {
-      console.error('❌ Twilio SMS failed:', err.response?.data || err.message);
-    }
-  }
+      }
 
-  // 4. Fallback Logger (Simulated SMS in Console for Dev/Testing)
-  console.log(`
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-📱 [MOCK SMS SENT TO ${recipient || 'STORE OWNER'}]
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-${message}
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-  `);
+      // 4. Fallback Logger (Dev / Console Test)
+      console.log(`📱 [MOCK SMS TO ${recipient}]: "${message}"`);
+      return { recipient, success: true, provider: 'mock_console' };
+    })
+  );
 
-  return { success: true, provider: 'mock_console', recipient, message };
+  return { success: true, results };
 };
 
 /**
- * Trigger Low Stock SMS Alert to Store Owner
+ * Trigger Low Stock SMS Alert to Store Owner (and additional numbers)
  */
 const triggerLowStockSMS = async (product, newStock) => {
   try {
