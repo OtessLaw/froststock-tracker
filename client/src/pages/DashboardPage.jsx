@@ -251,9 +251,10 @@ export default function DashboardPage() {
               toast.loading("Sending test SMS...", { id: "smsTest" });
               try {
                 const res = await API.post('/products/test-sms', { phone });
-                toast.success("Test SMS Sent Successfully! 📲", { id: "smsTest" });
+                toast.success('Test SMS Sent Successfully! 📲', { id: 'smsTest' });
               } catch (err) {
-                toast.error("SMS test processed (Check server log for details)", { id: "smsTest" });
+                const msg = err.response?.data?.message || err.message || 'SMS test failed';
+                toast.error(msg, { id: 'smsTest' });
               }
             }}
             className="w-full flex items-center justify-center gap-2 bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs py-2.5 px-3 rounded-xl shadow-sm transition-all active:scale-95"
