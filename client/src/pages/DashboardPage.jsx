@@ -1,3 +1,5 @@
+import React, { useState, useEffect } from 'react';
+import { Link } from 'react-router-dom';
 import {
   ShoppingCart, PackagePlus, Package, BarChart2,
   TrendingUp, AlertTriangle, Clock, Loader2, MessageSquare, Send, Smartphone

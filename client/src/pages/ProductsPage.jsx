@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback, useRef } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { Search, Plus, Package } from 'lucide-react';
 import API from '../services/api';
 import { useAuth } from '../context/AuthContext';
