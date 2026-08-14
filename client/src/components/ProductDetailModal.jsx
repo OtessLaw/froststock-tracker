@@ -5,7 +5,7 @@ import {
   TrendingUp, AlertTriangle, Clock, Users
 } from 'lucide-react';
 import API from '../services/api';
-import { formatMoney, formatDateTime, stockStatusInfo } from '../utils/helpers';
+import { formatMoney, formatDateTime, stockStatusInfo, getProductImage } from '../utils/helpers';
 
 // ─── Info Row ─────────────────────────────────────────────────────────────────
 function InfoRow({ icon: Icon, label, value, valueClass = '' }) {
@@ -80,22 +80,37 @@ export default function ProductDetailModal({ product, onClose, onEdit }) {
       className="modal-overlay"
       onClick={(e) => e.target === e.currentTarget && onClose()}
     >
-      <div className="modal-content">
-        {/* Header */}
-        <div className="modal-header">
-          <div className="min-w-0">
-            <h2 className="text-lg font-bold text-slate-800 truncate">{product.name}</h2>
-            <div className="flex items-center gap-2 mt-1 flex-wrap">
-              <span className="badge-pink">{product.category?.name || product.category}</span>
-              <span className={statusInfo.class}>{statusInfo.label}</span>
-            </div>
-          </div>
+      <div className="modal-content overflow-hidden">
+        {/* Product Photo Header */}
+        <div className="relative w-full h-44 bg-slate-900 overflow-hidden">
+          <img
+            src={getProductImage(product)}
+            alt={product.name}
+            className="w-full h-full object-cover opacity-90 hover:opacity-100 transition-opacity"
+            onError={(e) => {
+              e.target.onerror = null;
+              e.target.src = 'https://images.unsplash.com/photo-1544025162-d76694265947?auto=format&fit=crop&w=600&q=80';
+            }}
+          />
           <button
             onClick={onClose}
-            className="w-9 h-9 rounded-xl bg-gray-100 hover:bg-gray-200 flex items-center justify-center transition-colors ml-2 flex-shrink-0"
+            className="absolute top-3 right-3 w-9 h-9 rounded-full bg-black/60 hover:bg-black/80 text-white flex items-center justify-center backdrop-blur-sm transition-colors"
           >
-            <X className="w-5 h-5 text-gray-500" />
+            <X className="w-5 h-5" />
           </button>
+          <div className="absolute bottom-3 left-3 right-3 flex items-end justify-between">
+            <span className="badge-pink bg-black/60 backdrop-blur-md text-white border border-white/20">
+              {product.category?.name || product.category}
+            </span>
+            <span className={statusInfo.class}>{statusInfo.label}</span>
+          </div>
+        </div>
+
+        {/* Header */}
+        <div className="modal-header border-b border-gray-100 pb-3 pt-3">
+          <div className="min-w-0">
+            <h2 className="text-xl font-extrabold text-slate-800 truncate">{product.name}</h2>
+          </div>
         </div>
 
         {/* Body */}

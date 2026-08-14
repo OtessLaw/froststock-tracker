@@ -15,6 +15,7 @@ const EMPTY_FORM = {
   minimumStock: '',
   supplier: '',
   description: '',
+  image: '',
 };
 
 export default function ProductFormModal({ product, onClose, onSaved }) {
@@ -40,6 +41,7 @@ export default function ProductFormModal({ product, onClose, onSaved }) {
         minimumStock: product.minimumStock?.toString() || '',
         supplier: product.supplier?._id || product.supplier || '',
         description: product.description || '',
+        image: product.image || '',
       });
     }
   }, [isEdit, product]);
@@ -108,6 +110,7 @@ export default function ProductFormModal({ product, onClose, onSaved }) {
         minimumStock: form.minimumStock !== '' ? Number(form.minimumStock) : 0,
         supplier: form.supplier || undefined,
         description: form.description.trim() || undefined,
+        image: form.image.trim() || undefined,
       };
       if (!isEdit) {
         payload.initialStock = Number(form.initialStock);
@@ -318,6 +321,24 @@ export default function ProductFormModal({ product, onClose, onSaved }) {
                   <option key={sup._id} value={sup._id}>{sup.name}</option>
                 ))}
               </select>
+            </div>
+
+            {/* Product Image URL */}
+            <div>
+              <label className="label">
+                Product Image URL <span className="text-gray-400 font-normal">(optional photo link)</span>
+              </label>
+              <input
+                type="url"
+                value={form.image}
+                onChange={(e) => handleChange('image', e.target.value)}
+                placeholder="https://images.unsplash.com/... or paste image link"
+                className="input-field"
+                disabled={saving}
+              />
+              <p className="text-[11px] text-gray-400 mt-1">
+                Leave empty to automatically display a high-definition photo for this product type (Sausage, Tilapia, Red Fish, Kpanla, Chicken, etc.).
+              </p>
             </div>
 
             {/* Description */}

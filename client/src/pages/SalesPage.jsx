@@ -7,6 +7,7 @@ import {
 } from 'lucide-react';
 import ReceiptModal from '../components/ReceiptModal';
 import API from '../services/api';
+import { getProductImage } from '../utils/helpers';
 
 const formatCurrency = (amount) =>
   `GH₵${Number(amount || 0).toLocaleString('en-GH', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
@@ -272,8 +273,17 @@ export default function SalesPage() {
                         {inCart.quantity}
                       </span>
                     )}
-                    <div className="w-10 h-10 rounded-xl bg-pink-100 flex items-center justify-center mb-2">
-                      <Package className="w-5 h-5 text-pink-400" />
+                    <div className="relative w-full h-28 rounded-xl bg-slate-100 mb-2.5 overflow-hidden border border-slate-100">
+                      <img
+                        src={getProductImage(product)}
+                        alt={product.name}
+                        className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+                        loading="lazy"
+                        onError={(e) => {
+                          e.target.onerror = null;
+                          e.target.src = 'https://images.unsplash.com/photo-1544025162-d76694265947?auto=format&fit=crop&w=600&q=80';
+                        }}
+                      />
                     </div>
                     <p className="font-semibold text-sm text-gray-800 leading-tight mb-1 line-clamp-2">
                       {product.name}

@@ -2,7 +2,7 @@ import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { Search, Plus, Package } from 'lucide-react';
 import API from '../services/api';
 import { useAuth } from '../context/AuthContext';
-import { stockStatusInfo, debounce, formatMoney } from '../utils/helpers';
+import { stockStatusInfo, debounce, formatMoney, getProductImage } from '../utils/helpers';
 import ProductDetailModal from '../components/ProductDetailModal';
 import ProductFormModal from '../components/ProductFormModal';
 
@@ -30,25 +30,42 @@ function StatusBadge({ status }) {
 
 // ─── Product Card ─────────────────────────────────────────────────────────────
 function ProductCard({ product, onClick }) {
+  const imageUrl = getProductImage(product);
   return (
     <div
       onClick={onClick}
-      className="card-hover cursor-pointer select-none"
+      className="card-hover cursor-pointer select-none overflow-hidden group flex flex-col justify-between"
       role="button"
       tabIndex={0}
       onKeyDown={(e) => e.key === 'Enter' && onClick()}
     >
+      {/* Product Image Header */}
+      <div className="relative w-full h-32 bg-slate-100 -mt-4 -mx-4 mb-3 overflow-hidden border-b border-slate-100">
+        <img
+          src={imageUrl}
+          alt={product.name}
+          className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+          loading="lazy"
+          onError={(e) => {
+            e.target.onerror = null;
+            e.target.src = 'https://images.unsplash.com/photo-1544025162-d76694265947?auto=format&fit=crop&w=600&q=80';
+          }}
+        />
+        <div className="absolute top-2 right-2 shadow-md">
+          <StatusBadge status={product.stockStatus} />
+        </div>
+      </div>
+
       {/* Header row */}
-      <div className="flex items-start justify-between gap-2 mb-2">
+      <div className="flex items-start justify-between gap-2 mb-1">
         <div className="min-w-0">
           <h3 className="font-bold text-slate-800 text-sm leading-tight truncate">{product.name}</h3>
-          <span className="badge-pink mt-1">{product.category?.name || product.category}</span>
+          <span className="badge-pink mt-1 inline-block">{product.category?.name || product.category}</span>
         </div>
-        <StatusBadge status={product.stockStatus} />
       </div>
 
       {/* Stock info */}
-      <div className="mt-3 flex items-center justify-between text-xs text-gray-500">
+      <div className="mt-2 flex items-center justify-between text-xs text-gray-500">
         <span>
           Stock:{' '}
           <span className="font-bold text-slate-700">
