@@ -43,19 +43,27 @@ const sendSMS = async ({ to, message }) => {
     }
   }
 
-  // 2. FASTREACH / CUSTOM GHANA GATEWAY
+  // 2. FASTREACH GHANA GATEWAY
   if (process.env.FASTREACH_API_KEY) {
     try {
+      const apiKey = process.env.FASTREACH_API_KEY.trim();
+      const senderId = process.env.SMS_SENDER_ID || 'FrostStock';
+      const endpoint = process.env.FASTREACH_URL || 'https://api.fastreachgh.com/api/v1/send';
+
       const res = await axios.post(
-        process.env.FASTREACH_URL || 'https://api.fastreach.com/v1/sms/send',
+        endpoint,
         {
-          recipient,
-          sender: process.env.SMS_SENDER_ID || 'FrostStock',
-          message,
+          recipient: recipient,
+          to: recipient,
+          sender: senderId,
+          from: senderId,
+          message: message,
+          sms: message,
         },
         {
           headers: {
-            Authorization: `Bearer ${process.env.FASTREACH_API_KEY}`,
+            'Authorization': `Bearer ${apiKey}`,
+            'x-api-key': apiKey,
             'Content-Type': 'application/json',
           },
         }
@@ -63,7 +71,7 @@ const sendSMS = async ({ to, message }) => {
       console.log(`📲 [SMS SENT via FastReach to ${recipient}]:`, res.data);
       return { success: true, provider: 'fastreach', data: res.data };
     } catch (err) {
-      console.error('❌ FastReach SMS failed:', err.message);
+      console.error('❌ FastReach SMS failed:', err.response?.data || err.message);
     }
   }
 
