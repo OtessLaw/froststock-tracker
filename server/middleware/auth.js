@@ -17,7 +17,7 @@ const protect = async (req, res, next) => {
   }
 
   try {
-    const decoded = jwt.verify(token, process.env.JWT_SECRET);
+    const decoded = jwt.verify(token, process.env.JWT_SECRET || 'froststock_super_secret_jwt_key_2026');
     const user = await User.findById(decoded.id).select('-password');
 
     if (!user) {

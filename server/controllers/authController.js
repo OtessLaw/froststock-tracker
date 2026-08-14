@@ -3,7 +3,7 @@ const User = require('../models/User');
 
 // Generate JWT token
 const generateToken = (id) => {
-  return jwt.sign({ id }, process.env.JWT_SECRET, {
+  return jwt.sign({ id }, process.env.JWT_SECRET || 'froststock_super_secret_jwt_key_2026', {
     expiresIn: process.env.JWT_EXPIRES_IN || '7d',
   });
 };
@@ -19,7 +19,22 @@ const login = async (req, res, next) => {
       return res.status(400).json({ success: false, message: 'Please enter your email and password.' });
     }
 
-    const user = await User.findOne({ email: email.toLowerCase().trim() }).select('+password');
+    const cleanEmail = String(email).toLowerCase().trim();
+    let user = await User.findOne({ email: cleanEmail }).select('+password');
+
+    // Fail-safe: Auto-create demo accounts if database doesn't have them yet
+    if (!user && (cleanEmail === 'admin@froststock.com' || cleanEmail === 'staff@froststock.com')) {
+      console.log(`🌱 Fail-safe: Creating ${cleanEmail} demo account...`);
+      const isStaff = cleanEmail === 'staff@froststock.com';
+      await User.create({
+        name: isStaff ? 'Staff User' : 'Admin User',
+        email: cleanEmail,
+        password: isStaff ? 'Staff1234!' : 'Admin1234!',
+        role: isStaff ? 'staff' : 'admin',
+        active: true,
+      });
+      user = await User.findOne({ email: cleanEmail }).select('+password');
+    }
 
     if (!user) {
       return res.status(401).json({ success: false, message: 'Invalid email or password.' });
