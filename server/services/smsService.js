@@ -56,65 +56,51 @@ const sendSMS = async ({ to, message }) => {
         }
       }
 
-      // 2. FASREACH (https://fasreach.com/api/sms/send)
+      // 2. FASREACH (Production Gateway: https://fasreach-backend.onrender.com)
       const fasreachApiKey = process.env.FASTREACH_API_KEY || process.env.FASREACH_API_KEY || 'bms_live_1786699162670_al74d4thi0';
       if (fasreachApiKey) {
         try {
           const apiKey = fasreachApiKey.trim();
           const sender = process.env.SMS_SENDER_ID || 'FASREACH';
 
-          // Format phone number for FasReach Ghana (e.g. 024XXXXXXX or 23324XXXXXXX)
+          // Format phone number for Ghana (e.g. 024XXXXXXX)
           let phoneTo = recipient;
           if (phoneTo.startsWith('233') && phoneTo.length === 12) {
             phoneTo = '0' + phoneTo.slice(3);
           }
 
           const payload = {
+            recipientPhone: phoneTo,
             to: phoneTo,
+            content: message,
             message: message,
+            senderId: sender,
             sender: sender,
           };
 
-          const candidateConfigs = [
-            { url: 'https://fasreach.com/api/sms/send', headers: { 'x-api-key': apiKey, 'Content-Type': 'application/json' } },
-            { url: 'https://www.fasreach.com/api/sms/send', headers: { 'x-api-key': apiKey, 'Content-Type': 'application/json' } },
-            { url: 'https://fasreach.com/api/sms/send', headers: { 'Authorization': `Bearer ${apiKey}`, 'x-api-key': apiKey, 'Content-Type': 'application/json' } },
-            { url: 'https://fasreach.com/api/v1/sms/send', headers: { 'x-api-key': apiKey, 'Content-Type': 'application/json' } },
-            { url: `https://fasreach.com/api/sms/send?x-api-key=${encodeURIComponent(apiKey)}`, headers: { 'Content-Type': 'application/json' } },
+          const endpoints = [
+            'https://fasreach-backend.onrender.com/api/sms/send',
+            'https://fasreach.com/api/sms/send',
+            'https://www.fasreach.com/api/sms/send',
           ];
 
-          for (const cfg of candidateConfigs) {
+          for (const endpoint of endpoints) {
             try {
-              const res = await axios.post(cfg.url, payload, {
-                headers: cfg.headers,
-                timeout: 8000,
-                maxRedirects: 5,
+              const res = await axios.post(endpoint, payload, {
+                headers: {
+                  'x-api-key': apiKey,
+                  'Content-Type': 'application/json',
+                },
+                timeout: 15000,
               });
-              console.log(`📲 [SMS SENT via FasReach to ${phoneTo}]:`, res.data);
-              return { recipient: phoneTo, success: true, provider: 'fasreach', data: res.data };
-            } catch (errErr) {
-              // try next candidate config silently
+              if (res.data && res.data.success) {
+                console.log(`📲 [SMS DISPATCHED via FasReach Gateway to ${phoneTo}]:`, res.data);
+                return { recipient: phoneTo, success: true, provider: 'fasreach', data: res.data };
+              }
+            } catch (epErr) {
+              console.error(`FasReach endpoint ${endpoint} failed:`, epErr.response?.data?.message || epErr.message);
             }
           }
-
-          // Native fetch fallback
-          try {
-            const fRes = await fetch('https://fasreach.com/api/sms/send', {
-              method: 'POST',
-              headers: { 'x-api-key': apiKey, 'Content-Type': 'application/json' },
-              body: JSON.stringify(payload),
-            });
-            if (fRes.ok) {
-              const fData = await fRes.json().catch(() => ({ status: 'sent' }));
-              console.log(`📲 [SMS SENT via FasReach (Fetch) to ${phoneTo}]:`, fData);
-              return { recipient: phoneTo, success: true, provider: 'fasreach', data: fData };
-            }
-          } catch (fetchErr) {
-            // fetch fallback failed
-          }
-
-          console.log(`📱 [SMS LOGGED FOR ${phoneTo}]: "${message}"`);
-          return { recipient: phoneTo, success: true, provider: 'mock_console' };
         } catch (err) {
           console.error(`❌ FasReach error:`, err.message);
         }
