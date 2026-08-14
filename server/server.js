@@ -7,8 +7,20 @@ const rateLimit = require('express-rate-limit');
 const connectDB = require('./config/database');
 const errorHandler = require('./middleware/errorHandler');
 
-// Connect to MongoDB
-connectDB();
+// Connect to MongoDB and auto-seed if database is empty
+connectDB().then(async () => {
+  try {
+    const User = require('./models/User');
+    const count = await User.countDocuments();
+    if (count === 0) {
+      console.log('🌱 Cloud database is empty! Auto-seeding initial admin & demo data...');
+      const seedData = require('./scripts/seedData');
+      await seedData();
+    }
+  } catch (seedErr) {
+    console.error('Auto-seed error:', seedErr.message);
+  }
+});
 
 const app = express();
 
