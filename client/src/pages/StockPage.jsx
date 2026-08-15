@@ -57,71 +57,107 @@ const stockTypeLabel = (type) => {
   return type || '—';
 };
 
-// ─── Searchable Product Dropdown ─────────────────────────────────────────────
+// ─── Searchable & Mobile-Native Product Dropdown ─────────────────────────────
 function ProductSelect({ products, value, onChange, placeholder = 'Select product...' }) {
   const [open, setOpen] = useState(false);
   const [q, setQ] = useState('');
   const ref = useRef(null);
 
   const selected = products.find((p) => p._id === value);
-  const filtered = products.filter((p) =>
-    p.name?.toLowerCase().includes(q.toLowerCase())
-  );
+  const filtered = products.filter((p) => {
+    const searchStr = q.toLowerCase();
+    const nameStr = (p.name || '').toLowerCase();
+    const catStr = (p.category?.name || p.category || '').toLowerCase();
+    return nameStr.includes(searchStr) || catStr.includes(searchStr);
+  });
 
   useEffect(() => {
     const handler = (e) => { if (ref.current && !ref.current.contains(e.target)) setOpen(false); };
     document.addEventListener('mousedown', handler);
-    return () => document.removeEventListener('mousedown', handler);
+    document.addEventListener('touchstart', handler);
+    return () => {
+      document.removeEventListener('mousedown', handler);
+      document.removeEventListener('touchstart', handler);
+    };
   }, []);
 
   return (
     <div className="relative" ref={ref}>
-      <button
-        type="button"
-        onClick={() => setOpen((s) => !s)}
-        className="w-full flex items-center justify-between border border-pink-200 rounded-xl px-3 py-2.5 bg-white text-sm text-left focus:outline-none focus:ring-2 focus:ring-blue-400 hover:border-blue-300 transition-colors"
+      {/* Native Select for Mobile Touch (Guaranteed 100% Mobile Phone Compatibility) */}
+      <select
+        value={value}
+        onChange={(e) => onChange(e.target.value)}
+        className="block sm:hidden w-full border border-pink-200 rounded-xl px-3 py-3 bg-white text-sm font-semibold text-gray-800 focus:outline-none focus:ring-2 focus:ring-blue-400"
       >
-        <span className={selected ? 'text-gray-800 font-medium' : 'text-gray-400'}>
-          {selected ? selected.name : placeholder}
-        </span>
-        <ChevronDown className={`w-4 h-4 text-gray-400 transition-transform ${open ? 'rotate-180' : ''}`} />
-      </button>
-      {open && (
-        <div className="absolute z-30 mt-1 w-full bg-white border border-pink-100 rounded-xl shadow-xl overflow-hidden">
-          <div className="p-2 border-b border-pink-100">
-            <div className="relative">
-              <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-gray-400" />
-              <input
-                autoFocus
-                type="text"
-                placeholder="Search..."
-                value={q}
-                onChange={(e) => setQ(e.target.value)}
-                className="w-full pl-8 pr-3 py-1.5 text-sm border border-pink-200 rounded-lg focus:outline-none focus:border-blue-400"
-              />
+        <option value="">{placeholder}</option>
+        {products.map((p) => (
+          <option key={p._id} value={p._id}>
+            [{p.category?.name || p.category || 'Item'}] {p.name} (Stock: {p.currentStock} {p.unit || 'pcs'})
+          </option>
+        ))}
+      </select>
+
+      {/* Desktop Custom Visual Selector */}
+      <div className="hidden sm:block">
+        <button
+          type="button"
+          onClick={() => setOpen((s) => !s)}
+          className="w-full flex items-center justify-between border border-pink-200 rounded-xl px-3 py-2.5 bg-white text-sm text-left focus:outline-none focus:ring-2 focus:ring-blue-400 hover:border-blue-300 transition-colors"
+        >
+          {selected ? (
+            <div className="flex items-center gap-2 min-w-0">
+              <span className="bg-pink-100 text-pink-700 text-[10px] font-bold px-2 py-0.5 rounded-md uppercase">
+                {selected.category?.name || selected.category || 'Item'}
+              </span>
+              <span className="font-semibold text-gray-800 truncate">{selected.name}</span>
+            </div>
+          ) : (
+            <span className="text-gray-400">{placeholder}</span>
+          )}
+          <ChevronDown className={`w-4 h-4 text-gray-400 transition-transform ${open ? 'rotate-180' : ''}`} />
+        </button>
+        {open && (
+          <div className="absolute z-30 mt-1 w-full bg-white border border-pink-100 rounded-xl shadow-xl overflow-hidden">
+            <div className="p-2 border-b border-pink-100">
+              <div className="relative">
+                <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-gray-400" />
+                <input
+                  autoFocus
+                  type="text"
+                  placeholder="Search name or category..."
+                  value={q}
+                  onChange={(e) => setQ(e.target.value)}
+                  className="w-full pl-8 pr-3 py-1.5 text-sm border border-pink-200 rounded-lg focus:outline-none focus:border-blue-400"
+                />
+              </div>
+            </div>
+            <div className="max-h-60 overflow-y-auto">
+              {filtered.length === 0 ? (
+                <div className="px-4 py-3 text-sm text-gray-400 text-center">No products found</div>
+              ) : (
+                filtered.map((p) => (
+                  <button
+                    key={p._id}
+                    type="button"
+                    onClick={() => { onChange(p._id); setOpen(false); setQ(''); }}
+                    className={`w-full text-left px-3 py-2.5 text-sm hover:bg-blue-50 transition-colors flex items-center justify-between gap-2 ${
+                      p._id === value ? 'bg-blue-50 text-blue-600 font-medium' : 'text-gray-700'
+                    }`}
+                  >
+                    <div className="min-w-0 flex items-center gap-2">
+                      <span className="bg-pink-100 text-pink-700 text-[10px] font-bold px-1.5 py-0.5 rounded uppercase">
+                        {p.category?.name || p.category || 'Item'}
+                      </span>
+                      <span className="font-semibold text-gray-800 truncate">{p.name}</span>
+                    </div>
+                    <span className="text-xs text-gray-400 flex-shrink-0">Stock: {p.currentStock} {p.unit || 'pcs'}</span>
+                  </button>
+                ))
+              )}
             </div>
           </div>
-          <div className="max-h-52 overflow-y-auto">
-            {filtered.length === 0 ? (
-              <div className="px-4 py-3 text-sm text-gray-400 text-center">No products found</div>
-            ) : (
-              filtered.map((p) => (
-                <button
-                  key={p._id}
-                  type="button"
-                  onClick={() => { onChange(p._id); setOpen(false); setQ(''); }}
-                  className={`w-full text-left px-4 py-2.5 text-sm hover:bg-blue-50 transition-colors flex items-center justify-between ${
-                    p._id === value ? 'bg-blue-50 text-blue-600 font-medium' : 'text-gray-700'
-                  }`}
-                >
-                  <span>{p.name}</span>
-                  <span className="text-xs text-gray-400">{p.unit || 'pcs'}</span>
-                </button>
-              ))
-            )}
-          </div>
-        </div>
-      )}
+        )}
+      </div>
     </div>
   );
 }
